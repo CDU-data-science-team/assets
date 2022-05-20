@@ -142,6 +142,9 @@ testthat::test_that("<table> - get() and tidy() functions tested", {
 })
 
 ## SQL names ----
+# Some SQL servers are case insensitive, whilst R is case sensitive. Tests 
+# consequently have ignore.case = FALSE to ensure any changes are picked up as
+# a case change could affect analysis code
 
 testthat::test_that("<table> - tidy_names = FALSE tested", {
   # SQL
