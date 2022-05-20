@@ -1,0 +1,228 @@
+---
+title: "Template Function Skeleton"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Template Function Skeleton}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE,
+  echo = TRUE
+)
+```
+
+# Background
+
+The CDU Data Science Team are using and building a R package called {nottshcData} that uses get_ and tidy_ functions to get data from a SQL data warehouse in a consistent way. Each table used in the data warehouse has corresponding functions but there are also functions for calculations. More was written about it by Milan Wiedemannon the [team blog](https://cdu-data-science-team.github.io/team-blog/posts/2021-08-06-nottshcverse/).
+
+The following code snippets are related to the files needed to connect to SQL servers and the message file upon connection. These files must be incorporated into a package to work.
+
+Note where <> is used this is for areas where code needs to be updated.
+
+# Create get function - using table name
+
+The only different between this and the next get_ function is the code for the SQL. For this function the SQL code is the simplest:
+
+```{r get-sql}
+
+# Title section header ----
+#' Get table description
+#' @description Template links to \code{\link{tidy_db_tbl}}
+#'
+#' @param from String, specifying start date in "YYYY-MM-DD" format
+#' (Variable: StartDateTime)
+#' @param to String, specifying end date in "YYYY-MM-DD" format
+#' (Variable: StartDateTime)
+#' @param select_vars Logical, specifying whether to include only selected
+#' variables (TRUE)
+#' or all variables from the database (FALSE).
+#' @param conn A database connection
+#' @param return String, specifying whether to return a "tbl_sql" connection
+#' or "tbl_df"
+#'
+#' @section Last updated by:
+#' Template
+#' @section Last updated date:
+#' yyyy-mm-dd
+#'
+#' @return String/Dataframe A SQL connection or a data frame
+#' @export
+get_db_tbl <- function(from = NULL,
+                       to = NULL,
+                       select_vars = TRUE,
+                       conn = conn_sql_database1,
+                       return = c("tbl_sql", "tbl_df")) {
+  
+  cli::cli_text("This table is not currently in <Schema>")
+
+  # Check function arguments
+  return <- match.arg(return)
+  # Create connection to server
+  if (!exists("conn_sql_database1")) {
+    assign("conn_sql_database1",
+      connect_sql(database = "database1"),
+      envir = globalenv()
+    )
+  }
+
+  # Create connection to table
+  db_data <- dplyr::tbl(
+    conn,
+    dbplyr::in_schema(
+      "<SCHEMA>",
+      "<table>")
+
+  )
+  
+  # Filter date range
+  if (!is.null(from)) {
+    db_data <- db_data %>%
+      dplyr::filter(as.Date(StartDateTime) >= from)
+  }
+
+  if (!is.null(to)) {
+    db_data <- db_data %>%
+      dplyr::filter(as.Date(StartDateTime) <= to)
+  }
+
+  # Select or deselect variables
+  if (select_vars) {
+    db_data <- db_data %>%
+      dplyr::select(-Rn)
+  }
+
+  # Return
+  if (return == "tbl_sql") {
+    db_data
+  } else if (return == "tbl_df") {
+    db_data %>%
+      dplyr::collect()
+  }
+}
+
+
+```
+
+# Create get function - listing columns
+
+Some SQL tables have columns that are varchar(max), nvarchar(max) or binary and to get around this they need to be listed at the [end of a SQL SELECT statement]() and the code is slightly different:
+
+```{r sql-listed-columns}
+
+# Title section header ----
+#' Get table description
+#' @description Template links to \code{\link{tidy_db_tbl}}
+#'
+#' @param from String, specifying start date in "YYYY-MM-DD" format
+#' (Variable: StartDateTime)
+#' @param to String, specifying end date in "YYYY-MM-DD" format
+#' (Variable: StartDateTime)
+#' @param select_vars Logical, specifying whether to include only selected
+#' variables (TRUE)
+#' or all variables from the database (FALSE).
+#' @param conn A database connection
+#' @param return String, specifying whether to return a "tbl_sql" connection
+#' or "tbl_df"
+#'
+#' @section Last updated by:
+#' Template
+#' @section Last updated date:
+#' yyyy-mm-dd
+#'
+#' @return String/Dataframe A SQL connection or a data frame
+#' @export
+get_db_tbl <- function(from = NULL,
+                       to = NULL,
+                       select_vars = TRUE,
+                       conn = conn_sql_database1,
+                       return = c("tbl_sql", "tbl_df")) {
+  
+  cli::cli_text("This table is not currently in REPORT_BASE")
+
+  # Check function arguments
+  return <- match.arg(return)
+  # Create connection to server
+  if (!exists("conn_sql_database1")) {
+    assign("conn_sql_database1",
+      connect_sql(database = "database1"),
+      envir = globalenv()
+    )
+  }
+
+  db_data <- dplyr::tbl(conn, dbplyr::sql(
+    "SELECT <Columns>
+    <Any varchar(max) at end>
+  FROM <Schema>.<Table>
+    "
+  ))
+  
+  # Filter date range
+  if (!is.null(from)) {
+    db_data <- db_data %>%
+      dplyr::filter(as.Date(StartDateTime) >= from)
+  }
+
+  if (!is.null(to)) {
+    db_data <- db_data %>%
+      dplyr::filter(as.Date(StartDateTime) <= to)
+  }
+
+  # Select or deselect variables
+  if (select_vars) {
+    db_data <- db_data %>%
+      dplyr::select(-Rn)
+  }
+
+  # Return
+  if (return == "tbl_sql") {
+    db_data
+  } else if (return == "tbl_df") {
+    df_data <- db_data %>%
+      dplyr::collect()
+    df_data
+  }
+}
+
+
+```
+
+# Create tidy function
+
+The tidy function has all the tidying data code. Note that the order of the parameters/arguments needs to be with SQL first with the final code for tidying column names to come last so that parameters/arguments work both on SQL and R code:
+
+```{r eval=FALSE}
+
+#' Tidy table
+#'
+#' @description Template
+#' @param data tbl_df from \code{\link{get_db_tbl}}
+#' @param tidy_names Logical, specifying whether to rename variables to be
+#' consistent across different tables
+#'
+#' @section Last updated by:
+#' Template
+#' @section Last updated date:
+#' yyyy-dd-mm
+#'
+#' @return
+#' @export
+tidy_db_tbl <- function(data,
+                        tidy_names = TRUE) {
+  if (tidy_names) {
+    data <- dplyr::rename_all(data, janitor::make_clean_names) %>% 
+      dplyr::rename(
+      new_name = old_name
+    ) 
+
+  }
+
+  data
+}
+
+
+```
