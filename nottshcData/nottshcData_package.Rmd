@@ -1,0 +1,130 @@
+---
+title: "nottshcData package"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Template Function Skeleton}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE,
+  echo = TRUE
+)
+```
+
+# Background
+
+The CDU Data Science Team are using and building a R package called {nottshcData} that uses get_ and tidy_ functions to get data from a SQL data warehouse in a consistent way. Each table used in the data warehouse has corresponding functions but there are also functions for calculations. More was written about it by Milan Wiedemannon the [team blog](https://cdu-data-science-team.github.io/team-blog/posts/2021-08-06-nottshcverse/).
+
+The following code snippets are related to the files needed to connect to SQL servers and the message file upon connection. These files must be incorporated into a package to work.
+
+# Creating new SQL connections
+
+Add details to files `connect_sql.R` 
+
+```{r connect-sql}
+#' Connect to SQL servers
+#'
+#' @param driver String, specifying driver
+#' @param server String, specifying server
+#' @param database String, specifying database ("database1", "database2",
+#' "database3", "database3", "server2")
+#'
+#' @section Last updated by:
+#' Person
+#' @section Last updated date:
+#' yyyy-mm-dd
+#'
+#' @return
+#' @export
+connect_sql <- function(driver = "SQL Server",
+                        server = c(
+                          "server1",
+                          "server2"
+                        ),
+                        database = c(
+                          "database1",
+                          "database2",
+                          "database3",
+                          "database4",
+                          "database5",
+                          "databaseA" # From server2
+                        )) {
+
+  # check server and database argument
+  server <- match.arg(server)
+  database <- match.arg(database)
+
+  # this logic defines the server for a given database
+
+  if (database %in% c(
+    "database1",
+    "database2",
+    "database3",
+    "database4",
+    "database5"
+  )) {
+    server <- "server1"
+  }
+
+  if (database == "databaseA") {
+    server <- "server2"
+  }
+
+  conn <- try(pool::dbPool(
+    drv = odbc::odbc(),
+    driver = driver,
+    server = server,
+    database = database,
+    trusted_connection = TRUE
+  ))
+
+  if ("try-error" %in% class(conn)) {
+    cli::cli_div(theme = list(span.emph = list(color = "red")))
+    cli::cli_h1("Connecting to {driver}")
+    cli::cli_alert_danger("Failed to connect to database: {.emph {database}}")
+    cli::cli_alert_info("Check your VPN connection and whether you have access to the database.")
+    cli::cli_end()
+  } else {
+    cli::cli_div(theme = list(span.emph = list(color = "green")))
+    cli::cli_h1("Connecting to {driver}")
+    cli::cli_alert_success("Connecting to database: {.emph {database}}")
+    cli::cli_end()
+
+    conn
+  }
+}
+```
+
+Add to the message file `zzz.R`.
+
+```{r zzz}
+
+.onAttach <- function(libname, pkgname) {
+  version <- read.dcf(
+    file = system.file("DESCRIPTION", package = pkgname),
+    fields = "Version"
+  )
+
+  cli::cli_text(paste0("This is ", pkgname, " ", version))
+  cli::cli_text(paste0(pkgname, " is currently in development -
+                       please report any bugs or ideas at:"))
+  cli::cli_text("https://github.com/CDU-data-science-team/<Repo>/issues")
+
+  cli::cli_h1("Connecting to NOTTSHC servers:")
+  cli::cli_alert_info('conn_sql_database1 <- connect_sql(database = "database1")')
+  cli::cli_alert_info('conn_sql_database2 <- connect_sql(database = "database2")')
+  cli::cli_alert_info('conn_sql_database3 <- connect_sql(database = "database3")')
+  cli::cli_alert_info('conn_sql_database4 <- connect_sql(database = "database4")')
+  cli::cli_alert_info('conn_sql_database5 <- connect_sql(database = "database5")')
+  cli::cli_alert_info('conn_sql_database16 <- connect_sql(database = "database6")')
+  cli::cli_alert_info('conn_sql_databaseA <- connect_sql(database = "databaseA")')
+  cli::cli_alert_info('conn_mysql_database_fft <- connect_mysql(database = "database_fft")')
+}
+
+```
+

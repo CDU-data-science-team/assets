@@ -1,0 +1,220 @@
+---
+title: "Tests templates"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Tests templates}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Background
+
+The CDU Data Science Team are using and building a R package called {nottshcData} that uses get_ and tidy_ functions to get data from a SQL data warehouse in a consistent way. Each table used in the data warehouse has corresponding functions but there are also functions for calculations. More was written about it by Milan Wiedemannon the [team blog](https://cdu-data-science-team.github.io/team-blog/posts/2021-08-06-nottshcverse/).
+
+The following code snippets are related to the files needed to connect to SQL servers and the message file upon connection. These files must be incorporated into a package to work.
+
+Note where <> is used this is for areas where code needs to be updated.
+
+# Creating tests
+
+The easiest way to create a test script is to use {usethis}, putting the name of the file in the quotations:
+
+```{r}
+usethis::use_test(name = "")
+```
+
+Tests should be the same name as the file the code relates to so for tests relating to the R script `public-demographics.R` type:
+
+
+```{r}
+usethis::use_test("public-demographics")
+```
+
+and then the file will be automatically generated into the folder `tests/testthat` as `public-demographics.R`
+
+# Code to copy
+
+```{r }
+# <table> ----
+## get() ----
+
+testthat::test_that("<table> - get() function tested", {
+  n_cols <- 9
+
+  df <- get_() %>%
+    head(5) %>%
+    dplyr::collect()
+
+  testthat::expect_equal(
+    ncol(df), n_cols
+  )
+
+  testthat::expect_gt(
+    nrow(df), 0
+  )
+})
+
+# Testing end dates include the last date (from `to = ` parameter), using a team
+# that is time sensitive rather than teams that default to midnight
+## Filter by dates ----
+test_that("<table> - filter by dates", {
+
+  start_date <- "2020-01-01"
+  end_date <- "2020-02-01"
+
+  df <- get_(
+    from = start_date,
+    to = end_date
+  ) %>%
+    dplyr::summarise(
+      min_date = min(date, na.rm = TRUE),
+      max_date = max(date, na.rm = TRUE)
+    ) %>%
+    dplyr::collect()
+
+
+  testthat::expect_equal(
+    df$min_date, start_date
+  )
+
+  testthat::expect_equal(
+    df$max_date, end_date
+  )
+
+})
+
+## select_vars ----
+test_that("<table> - select_vars = FALSE tested", {
+
+  n_cols <- 25
+
+  df <- get_(select_vars = FALSE) %>%
+    head(5) %>%
+    dplyr::collect()
+
+  testthat::expect_equal(
+    ncol(df), n_cols
+  )
+
+  testthat::expect_gt(
+    nrow(df), 0
+  )
+
+  df2 <- get_(select_vars = FALSE) %>%
+    tidy_() %>%
+    head(5) %>%
+    dplyr::collect()
+
+  testthat::expect_equal(
+    ncol(df2), n_cols
+  )
+
+  testthat::expect_gt(
+    nrow(df2), 0
+  )
+})
+
+
+## get() and tidy() ----
+
+testthat::test_that("<table> - get() and tidy() functions tested", {
+  n_cols <- 9
+
+  df <- get_() %>%
+    tidy_() %>%
+    head(5) %>%
+    dplyr::collect()
+
+  testthat::expect_equal(
+    ncol(df), n_cols
+  )
+
+  testthat::expect_gt(
+    nrow(df), 0
+  )
+})
+
+## SQL names ----
+# Some SQL servers are case insensitive, whilst R is case sensitive. Tests 
+# consequently have ignore.case = FALSE to ensure any changes are picked up as
+# a case change could affect analysis code
+
+testthat::test_that("<table> - tidy_names = FALSE tested", {
+  # SQL
+  sql_names <- c(
+    "<list>"
+  )
+
+  df <- get_() %>%
+    tidy_(tidy_names = FALSE) %>%
+    head(5) %>%
+    dplyr::collect()
+
+  testthat::expect_named(
+    df %>% dplyr::select(1:3), sql_names,
+    ignore.order = TRUE, ignore.case = FALSE
+  )
+
+  # r
+  r_names <- c(
+    "<list>"
+  )
+
+  df2 <- get_() %>%
+    tidy_() %>%
+    head(5) %>%
+    dplyr::select(1:3) %>%
+    dplyr::collect()
+
+  testthat::expect_named(
+    df2, r_names,
+    ignore.order = TRUE, ignore.case = FALSE
+  )
+
+  # columns
+  n_cols <- 9
+
+  testthat::expect_equal(
+    ncol(df), n_cols
+  )
+
+  testthat::expect_gt(
+    nrow(df), 0
+  )
+})
+
+
+## Warnings given ----
+
+testthat::test_that("<table> - Message when function used", {
+  message <- "list message"
+
+  expect_message(get_() %>% head(5),
+                 message,
+                 fixed = TRUE
+  )
+
+})
+
+## Errors ----
+
+testthat::test_that("<table> - Error messages", {
+  error <- "At least one of the arguments ('filter_alive',
+                      'filter_died') must be set to TRUE"
+  
+  expect_error(get_() %>%
+                 tidy_(
+                   parameter =
+                 ), error,
+               fixed = TRUE
+  )
+})
+```
+
