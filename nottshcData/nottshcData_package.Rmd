@@ -30,8 +30,7 @@ Add details to files `connect_sql.R`
 #' Connect to SQL servers
 #'
 #' @param driver String, specifying driver
-#' @param server String, specifying server, get overwritten at the moment,
-#' might need to revisit this functionality at some point later
+#' @param server String, specifying server
 #' @param database String, specifying database ("database1", "database2",
 #' "database3", "database3", "server2")
 #'
